@@ -2,7 +2,7 @@
 
 Landing page d'un business fictif, des veillées d'astronomie sur le Causse Méjean (Lozère), reliée à une automatisation **n8n** : quand on remplit le formulaire en bas de page, on reçoit un mail récapitulatif.
 
-**Voir le site :** _lien GitHub Pages à venir_
+**Voir le site :** https://vspilou.github.io/nuit-noire/
 
 ## Tester l'envoi du mail
 
