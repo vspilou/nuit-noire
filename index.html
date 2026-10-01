@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nuit Noire · veillées d'astronomie sur le Causse Méjean</title>
+<meta name="description" content="Veillées d'astronomie en petit groupe sur le Causse Méjean, dans la Réserve internationale de ciel étoilé des Cévennes. Nuits sans lune, lampes rouges, télescope.">
+<meta name="theme-color" content="#070A12">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23070A12'/><circle cx='16' cy='16' r='3.2' fill='%23FF5B4A'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Geist:wght@300..600&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="scrollcraft.css">
+<style>
+  :root {
+    --sc-canvas:     #070A12;
+    --sc-surface:    #0E1320;
+    --sc-ink:        #ECE8DF;
+    --sc-ink-soft:   #A6ADBF;
+    --sc-accent:     #FF5B4A;   /* la lampe rouge : seule lumière qu'on garde la nuit */
+    --sc-accent-ink: #16080A;
+    --sc-font-display: "Bodoni Moda", "Didot", Georgia, serif;
+    --sc-font-text:    "Geist", system-ui, sans-serif;
+    --sc-font-mono:    "Geist Mono", ui-monospace, monospace;
+    --sc-track-tight: -0.022em;
+    --sc-track-snug:  -0.012em;
+    --nuit-1: #05070C;
+    --nuit-2: #090D17;
+  }
+  body { font-weight: 380; letter-spacing: 0.003em; }
+  .sc-display em { font-style: italic; }
+
+  /* ------------------------------------------------------------ chrome -- */
+  .barre {
+    position: fixed; inset: 0 0 auto 0; z-index: 60;
+    display: flex; align-items: center; justify-content: space-between; gap: var(--sc-4);
+    padding: var(--sc-5) var(--sc-gutter);
+    pointer-events: none;
+  }
+  .barre::before {
+    content: ""; position: absolute; inset: 0 0 -2.5rem 0; z-index: -1;
+    background: linear-gradient(color-mix(in oklab, var(--sc-canvas) 80%, transparent), transparent);
+  }
+  .barre a { pointer-events: auto; }
+  .marque {
+    display: inline-flex; align-items: center; gap: 0.6rem;
+    font-family: var(--sc-font-display); font-style: italic; font-size: 1.35rem;
+    letter-spacing: -0.01em; text-decoration: none; color: var(--sc-ink); white-space: nowrap;
+  }
+  .marque::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--sc-ink); }
+  .barre__droite { display: flex; align-items: center; gap: var(--sc-5); }
+  .barre__heure { display: none; margin: 0; white-space: nowrap; font-family: var(--sc-font-mono); font-size: var(--sc-t-xs); color: var(--sc-ink-soft); }
+  .barre__cta {
+    display: inline-flex; align-items: center; gap: 0.55rem;
+    padding: 0.55rem 1rem; border-radius: var(--sc-r-pill);
+    border: 1px solid var(--sc-hairline-strong);
+    font-size: var(--sc-t-sm); text-decoration: none; color: var(--sc-ink);
+    transition: border-color var(--sc-d-fast) var(--sc-ease-out), transform 120ms var(--sc-ease-out);
+  }
+  .barre__cta::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--sc-accent); }
+  .barre__cta:active { transform: scale(0.97); }
+
+  .heures { position: fixed; right: clamp(0.75rem, 1.6vw, 1.75rem); top: 50%; transform: translateY(-50%); z-index: 60; }
+  .heures ol { list-style: none; margin: 0; padding: 0 0.9rem 0 0; display: grid; gap: 0.3rem; border-right: 1px solid var(--sc-hairline); }
+  .heures a {
+    position: relative; display: block; padding: 0.3rem 0; text-align: right;
+    font-family: var(--sc-font-mono); font-size: 0.72rem; letter-spacing: 0.04em;
+    color: var(--sc-ink-soft); text-decoration: none;
+    transition: color var(--sc-d-fast) var(--sc-ease-out);
+  }
+  .heures a::after {
+    content: ""; position: absolute; right: calc(-0.9rem - 3.5px); top: 50%;
+    width: 6px; height: 6px; margin-top: -3px; border-radius: 50%;
+    background: var(--sc-accent); opacity: 0;
+    transition: opacity var(--sc-d-fast) var(--sc-ease-out);
+  }
+  .heures a[aria-current] { color: var(--sc-ink); }
+  .heures a[aria-current]::after { opacity: 1; }
+  .heures a span {
+    position: absolute; right: calc(100% + 0.75rem); top: 50%;
+    transform: translate(4px, -50%); white-space: nowrap;
+    padding: 0.2rem 0.55rem; border-radius: var(--sc-r-sm); background: var(--sc-surface);
+    font-family: var(--sc-font-text); font-size: var(--sc-t-xs); letter-spacing: 0; color: var(--sc-ink);
+    opacity: 0; pointer-events: none;
+    transition: opacity var(--sc-d-fast) var(--sc-ease-out), transform var(--sc-d-fast) var(--sc-ease-out);
+  }
+  .heures a:is(:hover, :focus-visible) span { opacity: 1; transform: translate(0, -50%); }
+
+  .cta {
+    display: inline-flex; align-items: center; gap: 0.6rem;
+    padding: 0.95rem 1.5rem; border: 0; border-radius: var(--sc-r-pill);
+    background: var(--sc-accent); color: var(--sc-accent-ink);
+    font-family: var(--sc-font-text); font-size: var(--sc-t-base); font-weight: 560; letter-spacing: 0;
+    text-decoration: none; cursor: pointer; white-space: nowrap;
+    transition: background-color var(--sc-d-fast) var(--sc-ease-out), transform 120ms var(--sc-ease-out);
+  }
+  .cta:active { transform: scale(0.97); }
+  .cta:disabled { opacity: 0.55; cursor: progress; }
+  @media (hover: hover) and (pointer: fine) {
+    .barre__cta:hover { border-color: var(--sc-accent); }
+    .cta:hover:not(:disabled) { background: #FF7262; }
+  }
+
+  /* ----------------------------------------------- 21:40 · crépuscule -- */
+  .hero__stage { background: #0B1222; }
+  .ciel { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .plan { position: absolute; left: -4%; bottom: 0; width: 108%; max-width: none; pointer-events: none; }
+  .plan svg { width: 100%; height: 100%; max-width: none; overflow: visible; }
+  /* chaque plan est plein sous sa silhouette, même quand il monte */
+  .plan::after { content: ""; position: absolute; left: 0; right: 0; top: 99.5%; height: 60vh; background: currentColor; }
+  .plan--loin  { height: 62vh; z-index: 1; color: #1A2540; }
+  .plan--loin svg { stroke: rgb(176 194 232 / 0.2); stroke-width: 1.5px; }
+  .plan--pres  { height: 56vh; z-index: 4; color: #0B111D; }
+  .plan--avant { height: 40vh; z-index: 5; color: #05070C; }
+  .brume { position: absolute; inset: auto -10% 17vh -10%; height: 26vh; z-index: 2; pointer-events: none; }
+  .brume::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      radial-gradient(38% 50% at 30% 62%, rgb(150 168 205 / 0.16), transparent 70%),
+      radial-gradient(34% 44% at 72% 56%, rgb(150 168 205 / 0.12), transparent 70%);
+  }
+  .hero__copy { position: absolute; left: var(--sc-gutter); bottom: 31vh; z-index: 3; max-width: min(46rem, 72vw); }
+  .hero h1 { font-size: var(--sc-t-4xl); }
+  .hero__lede {
+    margin: var(--sc-5) 0 var(--sc-6); max-width: 36ch;
+    font-size: var(--sc-t-lg); line-height: 1.45; text-wrap: pretty;
+    color: color-mix(in oklab, var(--sc-ink) 88%, transparent);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hero .plan, .hero .brume, .hero__copy { will-change: transform; }
+    .plan--loin  { transform: translate3d(calc(var(--mx, 0) * 6px),  calc(var(--sc-p) * var(--course, 1) * -4vh), 0); }
+    .brume       { transform: translate3d(calc(var(--mx, 0) * 10px), calc(var(--sc-p) * var(--course, 1) * -10vh), 0); }
+    .brume::before { animation: brume 38s ease-in-out infinite alternate; }
+    .hero__copy  { transform: translate3d(0, calc(var(--sc-p) * var(--course, 1) * -6vh), 0); }
+    .plan--pres  { transform: translate3d(calc(var(--mx, 0) * 14px), calc(var(--sc-p) * var(--course, 1) * -24vh), 0); }
+    .plan--avant { transform: translate3d(calc(var(--mx, 0) * 24px), calc(var(--sc-p) * var(--course, 1) * -38vh), 0); }
+  }
+  @keyframes brume { from { transform: translateX(-4%); } to { transform: translateX(4%); } }
+  @media (prefers-reduced-motion: reduce) {
+    .hero.sc-act--pinned { height: 100svh !important; }
+  }
+
+  /* ----------------------------------------------- 22:30 · ciel perdu -- */
+  .ville__stage { background: var(--nuit-1); }
+  .couche { position: absolute; inset: 0; z-index: 0; }
+  .couche--causse { z-index: 1; }
+  .couche__legende { position: absolute; left: var(--sc-gutter); bottom: var(--sc-6); margin: 0; z-index: 2; color: var(--sc-ink); }
+  .voile-colonne {
+    position: absolute; inset: 0 0 0 40%; z-index: 3; pointer-events: none;
+    background: linear-gradient(to left, rgb(4 6 12 / 0.82), rgb(4 6 12 / 0.55) 55%, transparent);
+  }
+  .ville__copy {
+    position: absolute; z-index: 4; top: 50%; transform: translateY(-50%);
+    right: calc(var(--sc-gutter) + 3rem); width: min(32rem, 42vw);
+    display: grid;
+  }
+  .empile > * { grid-area: 1 / 1; align-self: center; }
+  .ville__copy .sc-lede { margin-top: var(--sc-4); }
+  .note { margin: var(--sc-5) 0 0; font-size: var(--sc-t-sm); color: var(--sc-ink-soft); max-width: 40ch; }
+  @media (prefers-reduced-motion: reduce) {
+    /* sans balayage : le ciel du Causse arrive en fondu, l'histoire reste */
+    .couche--causse { opacity: clamp(0, calc((var(--sc-p) - 0.3) * 2.5), 1); }
+  }
+
+  /* ----------------------------------------------- 23:15 · extinction -- */
+  .noir { background: var(--nuit-1); min-height: 118vh; display: grid; align-content: center; padding-top: var(--sc-7); }
+  .noir__grille { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 4fr); gap: var(--sc-8); align-items: end; }
+  .noir .sc-lede { margin-top: var(--sc-6); }
+  .lampe { margin: 0 0 var(--sc-4); display: grid; justify-items: start; gap: var(--sc-5); }
+  .lampe__point { position: relative; width: 12px; height: 12px; border-radius: 50%; background: var(--sc-accent); }
+  .lampe__point::before {
+    content: ""; position: absolute; left: 50%; top: 50%; width: 180px; height: 180px; translate: -50% -50%;
+    background: radial-gradient(circle, rgb(255 91 74 / 0.3), rgb(255 91 74 / 0.08) 38%, transparent 70%);
+    border-radius: 50%;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .lampe__point::before { animation: souffle 4.15s ease-in-out infinite alternate; }
+  }
+  @keyframes souffle { from { opacity: 0.65; } to { opacity: 1; } }
+
+  /* ----------------------------------------------- 00:30 · pose longue -- */
+  .pose__stage { background: #03050B; }
+  .plan--pose { height: 46vh; z-index: 2; color: #04060B; }
+  .pose .sc-scrim { z-index: 3; }
+  .releve {
+    position: absolute; z-index: 4; left: var(--sc-gutter); top: 6.5rem; margin: 0;
+    display: flex; gap: var(--sc-6);
+    font-family: var(--sc-font-mono); font-size: var(--sc-t-xs); letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--sc-ink-soft); font-variant-numeric: tabular-nums;
+  }
+  .releve b { display: block; margin-top: var(--sc-1); font-weight: 500; font-size: var(--sc-t-lg); letter-spacing: 0; text-transform: none; color: var(--sc-ink); }
+  .pose__copy { position: absolute; z-index: 4; left: var(--sc-gutter); bottom: 25vh; width: min(34rem, 80vw); display: grid; }
+  .pose__copy .sc-lede { margin-top: var(--sc-4); }
+
+  /* ----------------------------------------------- 03:00 · le déroulé -- */
+  .deroule__stage { background: var(--nuit-2); display: flex; align-items: center; }
+  @media (min-width: 861px) and (prefers-reduced-motion: no-preference) {
+    /* le rail s'efface avant de passer sous les heures */
+    .deroule__stage {
+      -webkit-mask-image: linear-gradient(90deg, transparent, #000 3%, #000 calc(100% - 8rem), transparent calc(100% - 5rem));
+              mask-image: linear-gradient(90deg, transparent, #000 3%, #000 calc(100% - 8rem), transparent calc(100% - 5rem));
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    /* sans translation, la nuit se lit en grille plutôt qu'en rail figé */
+    .deroule.sc-act--pinned { height: auto !important; }
+    .deroule__stage.sc-stage { position: relative; height: auto; overflow: visible; padding-block: var(--sc-9); }
+    .rail { width: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: var(--sc-8) var(--sc-6); }
+    .rail::before { display: none; }
+    .rail__tete { grid-column: 1 / -1; margin-top: 0; }
+  }
+  .rail { position: relative; width: max-content; gap: clamp(2.5rem, 5vw, 5rem); align-items: flex-start; padding-inline: var(--sc-gutter) calc(var(--sc-gutter) + 5rem); }
+  .rail::before { content: ""; position: absolute; left: 0; right: 0; top: 1.75rem; height: 1px; background: var(--sc-hairline-strong); }
+  .rail__tete { flex: 0 0 min(30rem, 78vw); margin-top: 3rem; }
+  .rail__tete .sc-body { margin-top: var(--sc-5); }
+  .etape, .rail__fin { position: relative; flex: 0 0 clamp(15rem, 22vw, 20rem); }
+  .etape::before {
+    content: ""; position: absolute; left: 0; top: calc(1.75rem - 3.5px);
+    width: 7px; height: 7px; border-radius: 50%; background: var(--sc-ink);
+  }
+  .etape time, .rail__fin > .sc-label { display: block; height: 1.25rem; margin-bottom: 1.75rem; font-family: var(--sc-font-mono); font-size: var(--sc-t-sm); color: var(--sc-ink-soft); }
+  .etape h3, .rail__fin h3 {
+    margin: 0 0 var(--sc-3);
+    font-family: var(--sc-font-display); font-style: italic; font-weight: 500;
+    font-size: var(--sc-t-xl); line-height: 1.1; letter-spacing: -0.01em;
+  }
+  .etape p { margin: 0; max-width: 30ch; color: var(--sc-ink-soft); }
+  .rail__fin { flex-basis: clamp(18rem, 26vw, 24rem); }
+  .formules { list-style: none; margin: 0 0 var(--sc-5); padding: 0; }
+  .formules li { display: flex; justify-content: space-between; gap: var(--sc-4); padding: var(--sc-3) 0; border-bottom: 1px solid var(--sc-hairline); }
+  .formules a { color: var(--sc-ink); }
+  .formules span { color: var(--sc-ink-soft); font-size: var(--sc-t-sm); text-align: right; }
+  @media (prefers-reduced-motion: no-preference) {
+    .etape, .rail__fin { opacity: clamp(0.5, calc(var(--sc-p) * 9 - var(--i) + 2.6), 1); }
+  }
+
+  /* ----------------------------------------------- 06:10 · aube -- */
+  .aube {
+    position: relative; overflow: clip; padding-top: var(--sc-8); padding-bottom: 0;
+    background: linear-gradient(180deg, #0A1120 0%, #111B31 36%, #1E2B47 62%, #4A4350 84%, #7A5C4C 100%);
+  }
+  .berger { position: absolute; top: 16%; right: 24%; display: flex; align-items: center; gap: var(--sc-3); opacity: 0; transform: scale(0.95); transition: opacity 1.2s var(--sc-ease-out), transform 1.2s var(--sc-ease-out); }
+  .berger::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #FFF6E8; }
+  .berger.is-on { opacity: 1; transform: none; }
+  .aube__contenu { position: relative; z-index: 2; }
+  .aube__titre .sc-display { margin-top: var(--sc-4); max-width: 18ch; }
+  .phrase { margin-top: var(--sc-8); }
+  .phrase__texte {
+    margin: 0; max-width: 31em;
+    font-family: var(--sc-font-display); font-size: var(--sc-t-xl); line-height: 1.95; text-wrap: pretty;
+  }
+  .phrase :is(input, select) {
+    font-family: var(--sc-font-text); font-size: 0.8em; line-height: 1.2; color: var(--sc-ink);
+    background: transparent; border: 0; border-radius: 0;
+    border-bottom: 1px solid color-mix(in oklab, var(--sc-ink) 50%, transparent);
+    padding: 0.05em 0.15em; field-sizing: content; min-width: 4ch;
+    transition: border-color var(--sc-d-fast) var(--sc-ease-out);
+  }
+  .phrase input::placeholder { color: var(--sc-ink-soft); opacity: 1; }
+  .phrase input[name="prenom"] { min-width: 9ch; }
+  .phrase input[name="email"] { min-width: 16ch; max-width: 100%; }
+  .phrase input[type="number"] { min-width: 2ch; }
+  /* sans field-sizing (Firefox, anciens Safari) : largeurs fixes, assez grandes pour un vrai nom */
+  @supports not (field-sizing: content) {
+    .phrase input[name="prenom"] { width: 13ch; }
+    .phrase input[name="email"] { width: 24ch; }
+    .phrase input[type="number"] { width: 3ch; }
+  }
+  /* la saisie automatique de Chrome peint un fond clair : on garde la page de nuit */
+  .phrase input:-webkit-autofill, .phrase input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--sc-ink);
+    caret-color: var(--sc-accent);
+    transition: background-color 600000s 0s;
+  }
+  .phrase input[type="date"] { color-scheme: dark; }
+  .phrase select {
+    appearance: none; cursor: pointer; padding-right: 1.1em;
+    background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%23ECE8DF' stroke-width='1.3'/></svg>") right 0.15em center / 0.55em no-repeat;
+  }
+  .phrase option { background: var(--sc-surface); color: var(--sc-ink); }
+  .phrase :is(input, select):user-invalid { border-bottom-color: #FF8A7A; }
+  .phrase__mot { display: block; margin-top: var(--sc-6); max-width: 38rem; color: var(--sc-ink-soft); font-size: var(--sc-t-sm); }
+  .phrase__mot textarea {
+    display: block; width: 100%; margin-top: var(--sc-2); resize: vertical;
+    padding: 0.8rem 1rem; border-radius: var(--sc-r-md);
+    background: color-mix(in oklab, var(--sc-ink) 5%, transparent); border: 1px solid var(--sc-hairline-strong);
+    color: var(--sc-ink);
+  }
+  .piege { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .phrase__envoi { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sc-4) var(--sc-6); margin-top: var(--sc-6); }
+  .lune { margin: 0; font-family: var(--sc-font-mono); font-size: var(--sc-t-xs); letter-spacing: 0.02em; color: var(--sc-ink-soft); max-width: 46ch; }
+  .statut { min-height: 1.6em; margin: var(--sc-4) 0 0; color: var(--sc-ink); max-width: 52ch; }
+  .statut[data-etat="erreur"] { color: #FFB3A8; }
+  .aube__horizon { position: relative; z-index: 1; height: clamp(9rem, 26vh, 15rem); margin-top: var(--sc-8); color: var(--nuit-1); }
+  .aube__horizon svg { width: 108%; margin-left: -4%; height: 100%; max-width: none; }
+  .pied {
+    position: relative; z-index: 2; background: var(--nuit-1);
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--sc-3) var(--sc-6);
+    padding-block: var(--sc-5) var(--sc-7);
+    font-size: var(--sc-t-xs); color: var(--sc-ink-soft);
+  }
+  .pied p { margin: 0; }
+  .pied .marque { font-size: 1.1rem; margin-right: var(--sc-3); }
+
+  /* ----------------------------------------------- téléphone -- */
+  @media (max-width: 860px) {
+    .heures { display: none; }
+    .barre__heure { display: block; }
+    .barre__cta { display: none; }
+    .hero { --course: 0.55; }
+    .hero__copy { bottom: auto; top: calc(5rem + 5svh); right: var(--sc-gutter); max-width: none; }
+    .hero h1 { font-size: clamp(3.2rem, 15vw, 4.6rem); }
+    .hero__lede { font-size: var(--sc-t-base); }
+    .plan--loin { height: 56svh; } .plan--pres { height: 48svh; } .plan--avant { height: 32svh; }
+    .brume { bottom: 18svh; }
+    .voile-colonne { inset: 0 0 38% 0; background: linear-gradient(to bottom, rgb(4 6 12 / 0.85), rgb(4 6 12 / 0.55) 60%, transparent); }
+    .ville__copy { top: 5.5rem; transform: none; left: var(--sc-gutter); right: var(--sc-gutter); width: auto; }
+    .ville__copy .empile > * { align-self: start; }
+    .noir__grille { grid-template-columns: 1fr; gap: var(--sc-7); }
+    .releve { top: 5rem; }
+    .pose__copy { bottom: 21svh; right: var(--sc-gutter); width: auto; }
+    .plan--pose { height: 34svh; }
+    .phrase__texte { font-size: var(--sc-t-lg); line-height: 2.1; }
+  }
+</style>
+<noscript><style>[data-sc-in], [data-sc-stagger] > * { opacity: 1; transform: none; }</style></noscript>
+</head>
+<body>
+
+<div class="sc-grain" aria-hidden="true"></div>
+
+<!-- Silhouettes du Causse, dessinées une fois, réutilisées par chaque plan -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="halo-tente"><stop offset="0" stop-color="#FF5B4A" stop-opacity="0.5"/><stop offset="1" stop-color="#FF5B4A" stop-opacity="0"/></radialGradient>
+  </defs>
+  <symbol id="causse" viewBox="0 0 1600 600" preserveAspectRatio="xMidYMax slice">
+    <path fill="currentColor" d="M0 322 L70 318 L180 316 L250 309 L330 306 L470 304 L520 308 L548 322 L572 352 L598 368 L640 372 L682 366 L706 340 L724 316 L760 305 L900 302 L1010 300 L1060 306 L1090 298 L1240 294 L1300 296 L1330 306 L1352 330 L1376 346 L1410 350 L1436 336 L1458 312 L1490 304 L1600 300 L1600 600 L0 600 Z"/>
+  </symbol>
+  <symbol id="crete" viewBox="0 0 1600 600" preserveAspectRatio="xMidYMax slice">
+    <circle cx="1036" cy="386" r="54" fill="url(#halo-tente)"/>
+    <path fill="currentColor" d="M0 408 C90 400 170 388 260 386 C330 385 390 392 450 404 C510 416 560 436 610 446 C650 454 690 452 730 440 C790 422 850 404 930 398 C990 394 1040 394 1100 396 C1200 400 1300 408 1400 414 C1480 419 1540 422 1600 424 L1600 600 L0 600 Z"/>
+    <path fill="currentColor" d="M130 306 L141 334 L136 334 L148 360 L141 360 L156 396 L104 396 L119 360 L112 360 L124 334 L119 334 Z M175 322 L184 344 L180 344 L189 365 L184 365 L196 392 L154 392 L166 365 L161 365 L170 344 L166 344 Z M88 345 L95 362 L92 362 L99 379 L95 379 L104 400 L72 400 L81 379 L77 379 L84 362 L81 362 Z"/>
+    <rect fill="currentColor" x="944" y="372" width="34" height="27" rx="2"/>
+    <g fill="currentColor" transform="translate(962 380) rotate(-52)"><rect x="-12" y="-9" width="88" height="18" rx="2"/><rect x="40" y="-15" width="16" height="6" rx="1"/></g>
+    <path fill="currentColor" d="M1002 398 L1036 358 L1070 398 Z"/>
+    <path fill="#FF5B4A" fill-opacity="0.9" d="M1028 398 L1036 377 L1044 398 Z"/>
+  </symbol>
+  <symbol id="rochers" viewBox="0 0 1600 600" preserveAspectRatio="xMidYMax slice">
+    <path fill="currentColor" d="M0 468 C60 462 110 470 170 486 C240 504 330 526 440 538 C560 550 700 556 840 556 C980 556 1100 546 1210 530 C1310 515 1400 494 1480 474 C1530 462 1570 456 1600 452 L1600 600 L0 600 Z M260 520 C276 494 318 488 352 506 C370 516 380 530 384 540 Z M1250 524 C1268 500 1306 494 1338 506 C1352 512 1360 520 1364 528 Z"/>
+  </symbol>
+</svg>
+
+<header class="barre">
+  <a class="marque" href="#crepuscule">Nuit Noire</a>
+  <div class="barre__droite">
+    <p class="barre__heure" id="heure-courante" aria-hidden="true">21:40 · Crépuscule</p>
+    <a class="barre__cta" href="#demande">Demander une nuit</a>
+  </div>
+</header>
+
+<nav class="heures" aria-label="Les heures de la nuit">
+  <ol>
+    <li><a href="#crepuscule"><time>21:40</time><span>Crépuscule</span></a></li>
+    <li><a href="#ville"><time>22:30</time><span>Le ciel perdu</span></a></li>
+    <li><a href="#noir"><time>23:15</time><span>Extinction</span></a></li>
+    <li><a href="#pose"><time>00:30</time><span>Pose longue</span></a></li>
+    <li><a href="#deroule"><time>03:00</time><span>Le déroulé</span></a></li>
+    <li><a href="#demande"><time>06:10</time><span>Aube</span></a></li>
+  </ol>
+</nav>
+
+<main>
+
+  <!-- 21:40 · Crépuscule : les plans du Causse se séparent, les étoiles s'allument -->
+  <section id="crepuscule" class="hero" data-sc-act="pin" data-sc-span="1.9">
+    <div data-sc-stage class="hero__stage">
+      <canvas class="ciel" id="ciel-hero" aria-hidden="true"></canvas>
+      <div class="plan plan--loin" aria-hidden="true"><svg><use href="#causse" width="100%" height="100%"/></svg></div>
+      <div class="brume" aria-hidden="true"></div>
+      <div class="hero__copy">
+        <div data-sc-cue="0 0.72 0">
+          <h1 class="sc-display sc-display--xl">La nuit, <em>la vraie.</em></h1>
+          <p class="hero__lede">Veillées d'astronomie sur le Causse Méjean, au cœur de la Réserve internationale de ciel étoilé des Cévennes.</p>
+          <a class="cta" href="#demande">Demander une nuit</a>
+        </div>
+      </div>
+      <div class="plan plan--pres" aria-hidden="true"><svg><use href="#crete" width="100%" height="100%"/></svg></div>
+      <div class="plan plan--avant" aria-hidden="true"><svg><use href="#rochers" width="100%" height="100%"/></svg></div>
+    </div>
+  </section>
+
+  <!-- 22:30 · Le ciel perdu : un ciel de ville effacé par celui du Causse -->
+  <section id="ville" class="ville" data-sc-act="pin" data-sc-span="2">
+    <div data-sc-stage class="ville__stage">
+      <div class="couche">
+        <canvas class="ciel" id="ciel-ville" aria-hidden="true"></canvas>
+        <p class="couche__legende sc-label">Ciel de ville</p>
+      </div>
+      <div class="couche couche--causse" data-sc-reveal="up" data-sc-reveal-at="0.3 0.72">
+        <canvas class="ciel" id="ciel-causse" aria-hidden="true"></canvas>
+        <p class="couche__legende sc-label">Ciel du Causse Méjean</p>
+      </div>
+      <div class="voile-colonne" aria-hidden="true"></div>
+      <div class="ville__copy empile">
+        <div data-sc-cue="0 0.44 0">
+          <h2 class="sc-display sc-display--lg">En ville, quelques dizaines d'étoiles.</h2>
+          <p class="sc-lede">Le halo des lampadaires efface le reste.</p>
+        </div>
+        <div data-sc-cue="0.4 1 0.3 0.1">
+          <h2 class="sc-display sc-display--lg">Ici, plusieurs <em>milliers.</em></h2>
+          <p class="sc-lede">Et la Voie lactée, assez dense pour qu'on la prenne pour un nuage.</p>
+          <p class="note">Plus d'un tiers de l'humanité ne la voit plus depuis chez elle (Falchi et al., <cite>Science Advances</cite>, 2016).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 23:15 · Extinction : le silence voulu avant le sommet -->
+  <section id="noir" class="noir sc-section" data-sc-act="flow">
+    <div class="sc-wrap noir__grille">
+      <div data-sc-in data-sc-stagger="70">
+        <h2 class="sc-display sc-display--lg">D'abord, <em>on éteint.</em></h2>
+        <p class="sc-lede">Il faut vingt à trente minutes pour que l'œil s'habitue vraiment au noir.</p>
+        <p class="sc-body">Pendant ce temps, on boit quelque chose de chaud, on apprend à lire une carte du ciel, et l'on n'allume que des lampes rouges : le rouge ne défait pas ce que l'œil vient de gagner.</p>
+      </div>
+      <figure class="lampe" data-sc-in>
+        <span class="lampe__point" aria-hidden="true"></span>
+        <figcaption class="sc-label">La seule lumière du plateau</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 00:30 · Pose longue : la molette ouvre l'obturateur (le sommet) -->
+  <section id="pose" class="pose" data-sc-act="pin" data-sc-span="3.6">
+    <div data-sc-stage class="pose__stage">
+      <canvas class="ciel" id="ciel-pose" aria-hidden="true"></canvas>
+      <div class="plan plan--pose" aria-hidden="true"><svg><use href="#crete" width="100%" height="100%"/></svg></div>
+      <div class="sc-scrim sc-scrim--lead" aria-hidden="true"></div>
+      <p class="releve" aria-hidden="true"><span>Pose<b id="pose-duree">00 h 00 min</b></span><span>Rotation<b id="pose-angle">0,0°</b></span></p>
+      <div class="pose__copy empile">
+        <div data-sc-cue="0 0.34 0">
+          <h2 class="sc-display sc-display--lg">Ne bougez plus.</h2>
+          <p class="sc-lede">Le ciel, lui, tourne autour de l'étoile Polaire.</p>
+        </div>
+        <div data-sc-cue="0.3 0.66">
+          <h2 class="sc-display sc-display--lg">Quinze degrés <em>par heure.</em></h2>
+          <p class="sc-lede">Chaque cran de molette ajoute quelques minutes de pose. Les arcs suivent la vraie vitesse du ciel.</p>
+        </div>
+        <div data-sc-cue="0.62 1 0.3 0.08">
+          <h2 class="sc-display sc-display--lg">Quatre heures plus tard.</h2>
+          <p class="sc-lede">Voilà ce qu'un appareil photo retient d'une nuit sur le Causse. Vous, vous l'aurez vue tourner.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03:00 · Le déroulé : la nuit en largeur -->
+  <section id="deroule" class="deroule" data-sc-act="pan" data-sc-span="2.8">
+    <div data-sc-stage class="deroule__stage">
+      <div class="rail" data-sc-pan="0.04">
+        <div class="rail__tete">
+          <h2 class="sc-display sc-display--md">Une nuit, <em>heure par heure.</em></h2>
+          <p class="sc-body">Six personnes au plus. Le programme suit le ciel, pas l'inverse : s'il se couvre, on vous prévient la veille et l'on choisit une autre date.</p>
+        </div>
+        <article class="etape" style="--i:1"><time>21:40</time><h3>Rendez-vous</h3><p>Soupe chaude, couvertures, transats. On règle les jumelles avant la nuit.</p></article>
+        <article class="etape" style="--i:2"><time>22:30</time><h3>À l'œil nu</h3><p>Les constellations de la saison, une par une, et les étoiles dont on apprend à voir la couleur.</p></article>
+        <article class="etape" style="--i:3"><time>23:15</time><h3>Extinction</h3><p>Plus aucune lumière blanche. Les yeux finissent de s'adapter.</p></article>
+        <article class="etape" style="--i:4"><time>00:30</time><h3>Au télescope</h3><p>Un télescope de 400 mm : galaxies, amas, nébuleuses, et les planètes de la saison.</p></article>
+        <article class="etape" style="--i:5"><time>03:00</time><h3>Ceux qui restent</h3><p>Sacs de couchage sur le plateau pour la nuit entière. Le ciel tourne pendant que vous dormez.</p></article>
+        <article class="etape" style="--i:6"><time>06:10</time><h3>Aube</h3><p>Café, et le jour qui monte sur les gorges du Tarn.</p></article>
+        <aside class="rail__fin" style="--i:7">
+          <p class="sc-label">Formules</p>
+          <h3>Trois façons de venir</h3>
+          <ul class="formules">
+            <li><a href="#demande" data-formule="veillee">Veillée</a><span>21:40 à 01:00</span></li>
+            <li><a href="#demande" data-formule="nuit">Nuit entière</a><span>jusqu'à l'aube</span></li>
+            <li><a href="#demande" data-formule="privee">Nuit privée</a><span>votre groupe, six au plus</span></li>
+          </ul>
+          <p class="sc-body">Tarifs envoyés avec notre réponse.</p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06:10 · Aube : la demande, en une phrase -->
+  <section id="demande" class="aube sc-section" data-sc-act="flow">
+    <p class="berger sc-label" aria-hidden="true">Votre nuit est demandée</p>
+    <div class="sc-wrap aube__contenu">
+      <div class="aube__titre" data-sc-in data-sc-stagger="70">
+        <p class="sc-label">06:10 · Aube</p>
+        <h2 class="sc-display sc-display--lg" id="titre-demande">La prochaine nuit sans lune approche.</h2>
+      </div>
+      <!-- Le webhook n8n reçoit la demande ; sans JavaScript, le formulaire poste quand même (jamais en GET). -->
+      <form class="phrase" id="form-demande" method="post" action="http://localhost:5678/webhook/nuit-noire" data-sc-in>
+        <p class="phrase__texte">
+          Bonjour, je m'appelle <input name="prenom" required maxlength="60" autocomplete="given-name" placeholder="votre prénom" aria-label="Prénom">,
+          je voudrais <select name="formule" aria-label="Formule"><option value="veillee">une veillée</option><option value="nuit">une nuit entière</option><option value="privee">une nuit privée</option></select>
+          pour <input type="number" name="personnes" min="1" max="6" value="2" required aria-label="Nombre de personnes"> <span id="mot-personnes">personnes</span>,
+          la nuit du <input type="date" name="date" required aria-label="Date souhaitée">.
+          Vous pouvez m'écrire à <input type="email" name="email" required maxlength="120" autocomplete="email" placeholder="votre adresse e-mail" aria-label="Adresse e-mail">.
+        </p>
+        <label class="phrase__mot">Un mot pour nous, si vous voulez
+          <textarea name="message" rows="2" maxlength="600"></textarea>
+        </label>
+        <p class="piege" aria-hidden="true"><label>Laissez ce champ vide <input name="site" tabindex="-1" autocomplete="off"></label></p>
+        <div class="phrase__envoi">
+          <button class="cta" type="submit">Demander une nuit</button>
+          <p class="lune" id="lune" aria-live="polite"></p>
+        </div>
+        <p class="statut" id="statut" role="status"></p>
+      </form>
+    </div>
+    <div class="aube__horizon" aria-hidden="true"><svg><use href="#causse" width="100%" height="100%"/></svg></div>
+    <footer class="pied sc-wrap">
+      <p><span class="marque">Nuit Noire</span> Causse Méjean, Lozère</p>
+      <p>Marque fictive, page de démonstration. Les ciels sont dessinés en code. Polices Bodoni Moda et Geist (SIL Open Font License).</p>
+    </footer>
+  </section>
+
+</main>
+
+<script src="scrollcraft.js"></script>
+<script>
+ScrollCraft.mount(document.body);
+
+(() => {
+  const reduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const pointeurFin = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const etroit = () => innerWidth <= 860;
+  const $ = s => document.querySelector(s);
+  const lisse = x => (x = Math.min(1, Math.max(0, x)), x * x * (3 - 2 * x));
+  const progres = el => parseFloat(el.style.getPropertyValue('--sc-p')) || 0;
+
+  /* ---------- étoiles : tirage fixe (même ciel à chaque visite) ---------- */
+  function rng(a) {
+    return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  }
+  const TEINTES = ['196,214,255', '228,235,255', '255,247,234', '255,231,196', '255,208,170'];
+  // Tracé de la Voie lactée en coordonnées normalisées
+  const bande = t => [0.04 + 0.92 * t, -0.04 + 0.78 * t + 0.07 * Math.sin(Math.PI * t)];
+
+  // m = 0 pour l'étoile la plus brillante, 1 pour la plus faible
+  function champ(n, graine) {
+    const r = rng(graine), out = [];
+    for (let i = 0; i < n; i++) {
+      let x = r(), y = r();
+      if (i % 3 === 0) { const [bx, by] = bande(r()); const g = (r() + r() + r() - 1.5) * 0.08; x = bx - g * 0.6; y = by + g; }
+      out.push({ x, y, m: Math.pow(r(), 0.55), c: TEINTES[(r() * 5) | 0], ph: r() * 6.283, sp: 0.6 + r() * 1.8 });
+    }
+    return out;
+  }
+
+  function ajuster(cv, plafond) {
+    const d = Math.min(devicePixelRatio || 1, plafond);
+    const w = Math.round(cv.clientWidth * d), h = Math.round(cv.clientHeight * d);
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    return d;
+  }
+
+  function etoiles(ctx, liste, w, hCiel, d, seuil, t) {
+    for (const s of liste) {
+      if (s.m > seuil || s.y < 0) continue;
+      const b = (1 - s.m) ** 2;
+      let a = (0.28 + 0.72 * b) * Math.min(1, (seuil - s.m) / 0.06);
+      if (t) a *= 0.82 + 0.18 * Math.sin(t * s.sp + s.ph);
+      const r = (0.5 + b * 1.8) * d, x = s.x * w, y = s.y * hCiel;
+      ctx.fillStyle = `rgba(${s.c},${a.toFixed(3)})`;
+      if (r < 1.4) ctx.fillRect(x, y, r, r);
+      else { ctx.beginPath(); ctx.arc(x, y, r * 0.7, 0, 6.283); ctx.fill(); }
+    }
+  }
+
+  function voieLactee(ctx, w, hCiel, a) {
+    if (a <= 0) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i <= 16; i++) {
+      const [bx, by] = bande(i / 16), x = bx * w, y = by * hCiel;
+      const R = (0.08 + 0.04 * Math.sin(i * 1.7)) * Math.max(w, hCiel);
+      const g = ctx.createRadialGradient(x, y, 0, x, y, R);
+      g.addColorStop(0, `rgba(190,202,236,${a})`); g.addColorStop(1, 'rgba(190,202,236,0)');
+      ctx.fillStyle = g; ctx.fillRect(x - R, y - R, 2 * R, 2 * R);
+    }
+    ctx.restore();
+  }
+
+  const melange = (a, b, k) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * k))})`;
+
+  /* ---------- 21:40 · crépuscule ---------- */
+  const hero = $('#crepuscule'), cvH = $('#ciel-hero'), ctxH = cvH.getContext('2d');
+  const etH = champ(1500, 7);
+  const HAUT = [[16, 26, 51], [4, 6, 13]], MILIEU = [[38, 54, 88], [8, 13, 27]], HORIZON = [[132, 100, 84], [15, 22, 40]];
+  let dH = 1;
+  function dessinerHero(p, t) {
+    const w = cvH.width, h = cvH.height, k = reduit ? 0.75 : lisse(p * 1.1);
+    const g = ctxH.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, melange(...HAUT, k)); g.addColorStop(0.52, melange(...MILIEU, k));
+    g.addColorStop(0.72, melange(...HORIZON, k)); g.addColorStop(1, melange(...HORIZON, k));
+    ctxH.fillStyle = g; ctxH.fillRect(0, 0, w, h);
+    voieLactee(ctxH, w, h * 0.72, 0.05 * lisse((k - 0.35) / 0.65));
+    etoiles(ctxH, etH, w, h * 0.74, dH, 0.12 + 0.88 * Math.pow(k, 1.3), t);
+  }
+  let mx = 0, mxCible = 0;
+  if (pointeurFin && !reduit) {
+    hero.addEventListener('pointermove', e => { mxCible = (e.clientX / innerWidth) * 2 - 1; });
+    hero.addEventListener('pointerleave', () => { mxCible = 0; });
+  }
+
+  /* ---------- 22:30 · ciel de ville, ciel du Causse ---------- */
+  const etV = champ(2600, 11);
+  const MESAS = [[0, .885], [.05, .882], [.15, .878], [.21, .872], [.3, .87], [.33, .874], [.35, .886], [.37, .9], [.4, .904], [.43, .899], [.45, .88], [.48, .872], [.62, .868], [.66, .872], [.68, .866], [.8, .862], [.83, .87], [.85, .884], [.88, .888], [.91, .876], [.94, .869], [1, .866]];
+  function dessinerVilles() {
+    for (const ville of [true, false]) {
+      const cv = $(ville ? '#ciel-ville' : '#ciel-causse'), d = ajuster(cv, 1.5), ctx = cv.getContext('2d'), w = cv.width, h = cv.height;
+      const g = ctx.createLinearGradient(0, 0, 0, h);
+      if (ville) { g.addColorStop(0, '#121520'); g.addColorStop(0.55, '#2C2A30'); g.addColorStop(0.88, '#6B4A35'); }
+      else { g.addColorStop(0, '#03050B'); g.addColorStop(0.6, '#070C18'); g.addColorStop(0.88, '#111A2E'); }
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+      if (!ville) voieLactee(ctx, w, h * 0.86, 0.075);
+      etoiles(ctx, etV, w, h * 0.86, d, ville ? 0.086 : 1, 0);
+      ctx.fillStyle = '#05070C';
+      if (ville) {
+        const r = rng(5), base = h * 0.9;
+        ctx.fillRect(0, base, w, h - base);
+        for (let x = 0; x < w;) {
+          const bw = (18 + r() * 46) * d, bh = h * (0.03 + r() * 0.11);
+          ctx.fillStyle = '#05070C'; ctx.fillRect(x, base - bh, bw + 1, bh + 1);
+          for (let wy = base - bh + 6 * d; wy < base - 4 * d; wy += 7 * d)
+            for (let wx = x + 4 * d; wx < x + bw - 4 * d; wx += 6 * d)
+              if (r() < 0.2) { ctx.fillStyle = `rgba(255,196,128,${(0.3 + r() * 0.4).toFixed(2)})`; ctx.fillRect(wx, wy, 2 * d, 2.5 * d); }
+          x += bw;
+        }
+      } else {
+        ctx.beginPath(); ctx.moveTo(0, h);
+        for (const [x, y] of MESAS) ctx.lineTo(x * w, y * h);
+        ctx.lineTo(w, h); ctx.fill();
+      }
+    }
+  }
+
+  /* ---------- 00:30 · pose longue : le signature move ----------
+     Le défilement est le temps de pose : 0 à 4 h, à 15,041° par heure (jour sidéral). */
+  const pose = $('#pose'), cvP = $('#ciel-pose'), ctxP = cvP.getContext('2d');
+  const duree = $('#pose-duree'), angle = $('#pose-angle');
+  const rP = rng(19);
+  const traces = Array.from({ length: 1300 }, () => ({ r: Math.sqrt(rP()), a: rP() * 6.283, m: Math.pow(rP(), 0.5), c: TEINTES[(rP() * 5) | 0] }));
+  let pDernier = -1;
+  function dessinerPose(p) {
+    const d = ajuster(cvP, 1.5), w = cvP.width, h = cvP.height;
+    const heures = reduit ? 4 : p * 4, ang = heures * 15.041 * Math.PI / 180;
+    const cx = (etroit() ? 0.5 : 0.66) * w, cy = (etroit() ? 0.22 : 0.27) * h;
+    const R = Math.hypot(Math.max(cx, w - cx), Math.max(cy, h - cy));
+    const g = ctxP.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, '#03050B'); g.addColorStop(0.75, '#081022'); g.addColorStop(1, '#0E1830');
+    ctxP.fillStyle = g; ctxP.fillRect(0, 0, w, h);
+    ctxP.lineCap = 'round';
+    for (const s of traces) {
+      const b = (1 - s.m) ** 2;
+      ctxP.strokeStyle = `rgba(${s.c},${(0.18 + 0.7 * b).toFixed(3)})`;
+      ctxP.lineWidth = (0.5 + b * 1.7) * d;
+      ctxP.beginPath(); ctxP.arc(cx, cy, s.r * R, s.a, s.a - ang - 0.002, true); ctxP.stroke();
+    }
+    // la Polaire, à 0,7° du pôle, ne trace qu'un tout petit cercle
+    ctxP.fillStyle = 'rgba(255,247,234,0.95)';
+    ctxP.beginPath(); ctxP.arc(cx + 5 * d * Math.cos(-ang), cy + 5 * d * Math.sin(-ang), 2.2 * d, 0, 6.283); ctxP.fill();
+    const hh = Math.floor(heures), mm = Math.min(59, Math.floor((heures - hh) * 60));
+    duree.textContent = `${String(hh).padStart(2, '0')} h ${String(mm).padStart(2, '0')} min`;
+    angle.textContent = (heures * 15.041).toFixed(1).replace('.', ',') + '°';
+  }
+
+  /* ---------- une seule horloge, en pause hors écran ---------- */
+  let voitHero = true, voitPose = false;
+  const vue = new IntersectionObserver(es => es.forEach(e => { if (e.target === hero) voitHero = e.isIntersecting; else voitPose = e.isIntersecting; }));
+  vue.observe(hero); vue.observe(pose);
+  function redimensionner() { dH = ajuster(cvH, 2); dessinerVilles(); pDernier = -1; if (reduit) dessinerHero(0, 0); }
+  redimensionner();
+  addEventListener('resize', redimensionner);
+  (function boucle(t) {
+    if (voitHero && !reduit) {
+      mx += (mxCible - mx) * 0.06;
+      hero.style.setProperty('--mx', mx.toFixed(3));
+      dessinerHero(progres(hero), t / 1000);
+    }
+    if (voitPose) { const p = progres(pose); if (Math.abs(p - pDernier) > 0.0004) { pDernier = p; dessinerPose(p); } }
+    requestAnimationFrame(boucle);
+  })(0);
+
+  /* ---------- rail des heures ---------- */
+  const liens = [...document.querySelectorAll('.heures a')], heureBarre = $('#heure-courante');
+  const suivi = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    const lien = liens.find(a => a.hash === '#' + e.target.id);
+    liens.forEach(a => a.removeAttribute('aria-current'));
+    lien.setAttribute('aria-current', 'step');
+    heureBarre.textContent = lien.querySelector('time').textContent + ' · ' + lien.querySelector('span').textContent;
+  }), { rootMargin: '-50% 0px -50% 0px' });
+  liens.forEach(a => suivi.observe(document.querySelector(a.hash)));
+
+  /* ---------- Lune : nouvelles lunes par l'algorithme de Meeus (termes principaux, ± 10 min) ---------- */
+  const rad = Math.PI / 180, SYN = 29.530588861;
+  function nouvelleLune(k) {
+    const T = k / 1236.85, E = 1 - 0.002516 * T;
+    const M = (2.5534 + 29.1053567 * k) * rad, Mp = (201.5643 + 385.81693528 * k) * rad, F = (160.7108 + 390.67050284 * k) * rad;
+    const jde = 2451550.09766 + SYN * k + 0.00015437 * T * T
+      - 0.4072 * Math.sin(Mp) + 0.17241 * E * Math.sin(M) + 0.01608 * Math.sin(2 * Mp) + 0.01039 * Math.sin(2 * F)
+      + 0.00739 * E * Math.sin(Mp - M) - 0.00514 * E * Math.sin(Mp + M) + 0.00208 * E * E * Math.sin(2 * M);
+    return (jde - 2440587.5) * 864e5;
+  }
+  const kPour = ms => Math.floor((ms / 864e5 + 2440587.5 - 2451550.09766) / SYN);
+  function prochaine(ms) { let k = kPour(ms); while (nouvelleLune(k) < ms) k++; return nouvelleLune(k); }
+  function eclairee(ms) { let k = kPour(ms) + 1; while (nouvelleLune(k) > ms) k--; const age = (ms - nouvelleLune(k)) / 864e5; return Math.round((1 - Math.cos(2 * Math.PI * age / SYN)) / 2 * 100); }
+  const jourMois = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', timeZone: 'Europe/Paris' });
+  const isoParis = ms => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(ms);
+
+  const form = $('#form-demande'), champDate = form.elements.date, lune = $('#lune'), statut = $('#statut'), bouton = form.querySelector('button');
+  const nl = prochaine(Date.now());
+  $('#titre-demande').textContent = `Prochaine nuit sans lune : le ${jourMois.format(nl)}.`;
+  champDate.min = isoParis(Date.now());
+  champDate.value = isoParis(nl);
+  function majLune() {
+    if (!champDate.value) { lune.textContent = ''; return; }
+    const soir = Date.parse(champDate.value + 'T20:00:00Z'), e = eclairee(soir);
+    lune.textContent = `Lune le ${jourMois.format(soir)} : éclairée à ${e} %. ` +
+      (e < 25 ? 'Nuit idéale.' : e < 60 ? 'Bien pour la Lune et les planètes, moins pour les galaxies.' : 'Trop de Lune pour le ciel profond : on vous proposera une autre date.');
+  }
+  majLune();
+  champDate.addEventListener('input', majLune);
+  form.elements.personnes.addEventListener('input', e => { $('#mot-personnes').textContent = e.target.value === '1' ? 'personne' : 'personnes'; });
+  document.querySelectorAll('[data-formule]').forEach(a => a.addEventListener('click', () => { form.elements.formule.value = a.dataset.formule; }));
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (form.elements.site.value) return;
+    bouton.disabled = true;
+    statut.dataset.etat = '';
+    statut.textContent = 'Envoi en cours… quelques secondes.';
+    try {
+      // Gmail peut mettre plusieurs secondes à accepter un mail : on attend jusqu'à une minute
+      // En local on parle à n8n directement ; en ligne, à l'adresse du tunnel ouvert par demo.mjs
+      const cible = location.hostname === 'localhost' ? 'http://localhost:5678/webhook/nuit-noire' : form.action;
+      const r = await fetch(cible, { method: 'POST', body: new URLSearchParams(new FormData(form)), signal: AbortSignal.timeout(60000) });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      statut.dataset.etat = 'ok';
+      statut.textContent = `C'est envoyé. Un e-mail de confirmation part vers ${form.elements.email.value}. On vous répond sous 48 heures.`;
+      bouton.textContent = 'Demande envoyée';
+      $('.berger').classList.add('is-on');
+    } catch (err) {
+      statut.dataset.etat = 'erreur';
+      // Délai dépassé : la demande est peut-être passée, on ne dit pas « échec » et on évite le doublon
+      statut.textContent = err.name === 'TimeoutError'
+        ? "La réponse tarde. Votre demande est peut-être bien partie : regardez votre boîte mail avant de renvoyer."
+        : "L'envoi n'a pas abouti. Vérifiez votre connexion et réessayez dans un instant.";
+      bouton.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
